@@ -182,7 +182,7 @@ class Scanner:
     def _peek_next(self) -> Optional[str]:
         if self._current + 1 >= len(self._source):
             return None
-        return self.source[self._current + 1]
+        return self._source[self._current + 1]
 
     def _scan_string(self) -> None:
         while (next_char := self._peek()) != '"' and not self._is_at_end():
