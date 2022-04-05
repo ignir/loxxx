@@ -232,11 +232,11 @@ class Scanner:
         )
 
 
-def is_digit(char) -> bool:
-    return char in string.digits
+def is_digit(char: Optional[str]) -> bool:
+    return char is not None and char in string.digits
 
-def is_alpha(char) -> bool:
-    return 'a' <= char <= 'z' or 'A' <= char <= 'Z' or char == "_"
+def is_alpha(char: Optional[str]) -> bool:
+    return char is not None and ('a' <= char <= 'z' or 'A' <= char <= 'Z' or char == "_")
 
-def is_alphanumeric(char) -> bool:
+def is_alphanumeric(char: Optional[str]) -> bool:
     return is_alpha(char) or is_digit(char)
