@@ -96,6 +96,7 @@ class Scanner:
         while not self._is_at_end():
             self._start = self._current
             self._scan_token()
+        self._add_token(TokenType.EOF)
         return self._tokens
 
     def _is_at_end(self):
