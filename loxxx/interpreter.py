@@ -1,4 +1,5 @@
 from functools import singledispatchmethod
+from typing import Any
 
 from loxxx.expressions import Expression, Binary, Unary, Grouping, Literal
 from loxxx.scanner import Token, TokenType
@@ -15,19 +16,19 @@ class Interpeter:
             Lox.runtime_error(error)
    
     @singledispatchmethod
-    def evaluate(self, expression: Expression) -> object:
+    def evaluate(self, expression: Expression) -> Any:
         raise NotImplementedError
 
     @evaluate.register
-    def _(self, expression: Literal) -> object:
+    def _(self, expression: Literal) -> Any:
         return expression.value
 
     @evaluate.register
-    def _(self, expression: Grouping) -> object:
+    def _(self, expression: Grouping) -> Any:
         return self.evaluate(expression.expression)
 
     @evaluate.register
-    def _(self, expression: Unary) -> object:
+    def _(self, expression: Unary) -> Any:
         right = self.evaluate(expression.right)
 
         match expression.operator.type:
@@ -37,8 +38,10 @@ class Interpeter:
                 self._validate_number_operand(expression.operator, right)
                 return -right
 
+        raise Exception(f"No handler for a binary operator of type {expression.operator.type}")                
+
     @evaluate.register
-    def _(self, expression: Binary) -> object:
+    def _(self, expression: Binary) -> Any:
         left = self.evaluate(expression.left)
         right = self.evaluate(expression.right)
 
@@ -49,7 +52,7 @@ class Interpeter:
                 return left != right
             case TokenType.PLUS:
                 if isinstance(left, float) and isinstance(right, float) or isinstance(left, str) and isinstance(right, str):
-                    return left + right
+                    return left + right  # type: ignore
                 raise LoxRuntimeError(expression.operator, "Both operands must be either Numbers or Strings")
             case TokenType.MINUS:
                 self._validate_number_operands(expression.operator, left, right)
@@ -74,6 +77,8 @@ class Interpeter:
             case TokenType.LESS_EQUAL:
                 self._validate_number_operands(expression.operator, left, right)
                 return left <= right
+
+        raise Exception(f"No handler for a binary operator of type {expression.operator.type}")
 
     def _is_truthy(self, o: object) -> bool:
         if o is None:
