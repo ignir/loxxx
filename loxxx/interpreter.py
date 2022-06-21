@@ -7,7 +7,7 @@ from loxxx.scanner import Token, TokenType
 class Interpeter:
     def intepret(self, expression: Expression) -> None:
         from loxxx.lox import Lox
-        
+
         try:
             value = self.evaluate(expression)
             print(self._stringify(value))
@@ -43,7 +43,7 @@ class Interpeter:
         right = self.evaluate(expression.right)
 
         match expression.operator.type:
-            case TokenType.EQUAL:
+            case TokenType.EQUAL_EQUAL:
                 return left == right
             case TokenType.BANG_EQUAL:
                 return left != right
