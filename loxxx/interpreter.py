@@ -101,10 +101,13 @@ class Interpeter:
         if value is None:
             return "nil"
         
-        s = str(value)
-        if isinstance(value, float) and s.endswith(".0"):
-            return s[:-2]
-        return s
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, float):
+            if (s := str(value)).endswith(".0"):
+                return s[:-2]
+            return s
+        return str(value)
 
 
 class LoxRuntimeError(Exception):
