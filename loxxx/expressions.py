@@ -28,4 +28,4 @@ class Grouping(Expression):
 
 @dataclass
 class Literal(Expression):
-    value: Any
+    value: float | str | None
