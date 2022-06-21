@@ -109,6 +109,7 @@ class Parser:
         return self.peek.type == type
 
     def error(self, token: Token, message: str) -> ParseError: 
+        # TODO: Can this work without circular dependencies between classes?
         from loxxx.lox import Lox
         
         Lox.error(token, message)
