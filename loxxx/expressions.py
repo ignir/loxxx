@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Any
 
 from loxxx.scanner import Token
 
@@ -29,3 +28,14 @@ class Grouping(Expression):
 @dataclass
 class Literal(Expression):
     value: float | str | None
+
+
+@dataclass
+class Variable(Expression):
+    name: Token
+
+
+@dataclass
+class Assign(Expression):
+    name: Token
+    value: Expression

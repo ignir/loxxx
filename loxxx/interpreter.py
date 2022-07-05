@@ -1,23 +1,84 @@
 from functools import singledispatchmethod
-from typing import Any
+from typing import Any, Iterable, List, Optional
 
-from loxxx.expressions import Expression, Binary, Unary, Grouping, Literal
+from loxxx.expressions import Assign, Expression, Binary, Unary, Grouping, Literal, Variable
 from loxxx.scanner import Token, TokenType
+from loxxx.statements import Block, ExpressionStatement, PrintStatement, Statement, VariableDeclaration
+
+
+class Environment:
+    def __init__(self, outer: Optional['Environment'] = None):
+        self._outer = outer
+        self._values: dict = {}
+
+    def define(self, name: str, value: Any) -> None:
+        self._values[name] = value
+
+    def assign(self, name: Token, value: Any) -> None:
+        if name.lexeme in self._values:
+            self._values[name.lexeme] = value
+            return
+        if self._outer:
+            return self._outer.assign(name, value)
+
+        raise LoxRuntimeError(name, f"Undefined variable {name.lexeme!r}.")
+
+    def get(self, name: Token) -> Any:
+        if name.lexeme in self._values:
+            return self._values[name.lexeme]
+        if self._outer:
+            return self._outer.get(name)
+
+        raise LoxRuntimeError(name, f"Undefined variable {name.lexeme!r}.")
 
 
 class Interpeter:
-    def intepret(self, expression: Expression) -> None:
+    def __init__(self) -> None:
+        self._environment = Environment()
+
+    def intepret(self, statements: Iterable[Statement]) -> None:
         from loxxx.lox import Lox
 
         try:
-            value = self.evaluate(expression)
-            print(self._stringify(value))
+            for statement in statements:
+                self.execute(statement)
         except LoxRuntimeError as error:
             Lox.runtime_error(error)
-   
+
+    @singledispatchmethod
+    def execute(self, statement: Statement) -> None:
+        raise NotImplementedError
+
     @singledispatchmethod
     def evaluate(self, expression: Expression) -> Any:
         raise NotImplementedError
+
+    @execute.register
+    def _(self, statement: Block) -> None:
+        self._execute_block(statement.statements, Environment(self._environment))
+
+    def _execute_block(self, statements: List[Statement], environment: Environment) -> None:
+        outer_environment = self._environment
+        try:
+            self._environment = environment
+            for statement in statements:
+                self.execute(statement)
+        finally:
+            self._environment = outer_environment
+
+    @execute.register
+    def _(self, statement: ExpressionStatement) -> None:
+        self.evaluate(statement.expression)
+
+    @execute.register
+    def _(self, statement: PrintStatement) -> None:
+        value = self.evaluate(statement.expression)
+        print(self._stringify(value))
+
+    @execute.register
+    def _(self, statement: VariableDeclaration) -> None:
+        value = statement.initializer and self.evaluate(statement.initializer)
+        self._environment.define(statement.name.lexeme, value)
 
     @evaluate.register
     def _(self, expression: Literal) -> Any:
@@ -38,7 +99,17 @@ class Interpeter:
                 self._validate_number_operand(expression.operator, right)
                 return -right
 
-        raise Exception(f"No handler for a binary operator of type {expression.operator.type}")                
+        raise Exception(f"No handler for a binary operator of type {expression.operator.type}")
+
+    @evaluate.register
+    def _(self, expression: Variable) -> Any:
+        return self._environment.get(expression.name)
+
+    @evaluate.register
+    def _(self, expression: Assign) -> Any:
+        value = self.evaluate(expression.value)
+        self._environment.assign(expression.name, value)
+        return value
 
     @evaluate.register
     def _(self, expression: Binary) -> Any:
@@ -100,7 +171,7 @@ class Interpeter:
     def _stringify(self, value: object) -> str:
         if value is None:
             return "nil"
-        
+
         if isinstance(value, bool):
             return "true" if value else "false"
         if isinstance(value, float):
