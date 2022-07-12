@@ -45,6 +45,17 @@ class Interpeter:
         except LoxRuntimeError as error:
             Lox.runtime_error(error)
 
+    def intepret_repl(self, statements: Iterable[Statement]) -> Any:
+        from loxxx.lox import Lox
+
+        if len(statements) == 1 and isinstance(statements[0], ExpressionStatement):
+            try:
+                print(self.evaluate(statements[0].expression))
+            except LoxRuntimeError as error:
+                Lox.runtime_error(error)
+        else:
+            self.intepret(statements)
+
     @singledispatchmethod
     def execute(self, statement: Statement) -> None:
         raise NotImplementedError

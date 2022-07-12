@@ -5,6 +5,7 @@ from loxxx.errors import report
 from loxxx.interpreter import Interpeter, LoxRuntimeError
 from loxxx.parser import ParseError, Parser
 from loxxx.scanner import Scanner, Token, TokenType
+from loxxx.statements import ExpressionStatement
 
 
 class Lox:
@@ -26,10 +27,10 @@ class Lox:
             line = input("> ")
             if not line:
                 break
-            self.run(line)
+            self.run(line, repl_mode=True)
             Lox._had_error = False
 
-    def run(self, source):
+    def run(self, source, *, repl_mode=False):
         tokens = Scanner(source).scan()
         try:
             statements = Parser(tokens).parse()
@@ -39,7 +40,10 @@ class Lox:
         if Lox._had_error:
             return
 
-        self._interpreter.intepret(statements)
+        if repl_mode:
+            self._interpreter.intepret_repl(statements)
+        else:
+            self._interpreter.intepret(statements)
 
     @staticmethod
     def error(token: Token, message: str) -> None:
