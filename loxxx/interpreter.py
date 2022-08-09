@@ -1,9 +1,9 @@
 from functools import singledispatchmethod
 from typing import Any, Iterable, List, Optional
 
-from loxxx.expressions import Assign, Expression, Binary, Unary, Grouping, Literal, Variable
+from loxxx.expressions import Assign, Expression, Binary, Logical, Unary, Grouping, Literal, Variable
 from loxxx.scanner import Token, TokenType
-from loxxx.statements import Block, ExpressionStatement, PrintStatement, Statement, VariableDeclaration
+from loxxx.statements import Block, ExpressionStatement, If, PrintStatement, Statement, VariableDeclaration, While
 
 
 class Environment:
@@ -82,6 +82,13 @@ class Interpeter:
         self.evaluate(statement.expression)
 
     @execute.register
+    def _(self, statement: If) -> None:
+        if self._is_truthy(self.evaluate(statement.condition)):
+            self.execute(statement.then_branch)
+        elif statement.else_branch:
+            self.execute(statement.else_branch)
+
+    @execute.register
     def _(self, statement: PrintStatement) -> None:
         value = self.evaluate(statement.expression)
         print(self._stringify(value))
@@ -91,9 +98,27 @@ class Interpeter:
         value = statement.initializer and self.evaluate(statement.initializer)
         self._environment.define(statement.name.lexeme, value)
 
+    @execute.register
+    def _(self, statement: While) -> None:
+        while self._is_truthy(self.evaluate(statement.condition)):
+            self.execute(statement.body)
+
     @evaluate.register
     def _(self, expression: Literal) -> Any:
         return expression.value
+
+    @evaluate.register
+    def _(self, expression: Logical) -> Any:
+        left = self.evaluate(expression.left)
+
+        if expression.operator.type == TokenType.OR:
+            if self._is_truthy(left):
+                return left
+        else:
+            if not self._is_truthy(left):
+                return left
+
+        return self.evaluate(expression.right)
 
     @evaluate.register
     def _(self, expression: Grouping) -> Any:

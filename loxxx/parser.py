@@ -1,8 +1,8 @@
 from typing import List, Optional, cast
 
-from loxxx.expressions import Assign, Binary, Expression, Grouping, Literal, Unary, Variable
+from loxxx.expressions import Assign, Binary, Expression, Grouping, Literal, Logical, Unary, Variable
 from loxxx.scanner import Token, TokenType
-from loxxx.statements import Block, ExpressionStatement, Statement, PrintStatement, VariableDeclaration
+from loxxx.statements import Block, ExpressionStatement, If, Statement, PrintStatement, VariableDeclaration, While
 
 
 class ParseError(Exception):
@@ -38,16 +38,74 @@ class Parser:
         return VariableDeclaration(name, initializer)
 
     def parse_statement(self) -> Statement:
+        if self.match(TokenType.FOR):
+            return self.parse_for_statement()
+        if self.match(TokenType.IF):
+            return self.parse_if_statement()
         if self.match(TokenType.PRINT):
             return self.parse_print_statement()
+        if self.match(TokenType.WHILE):
+            return self.parse_while_statement()
         if self.match(TokenType.LEFT_BRACE):
             return Block(self.parse_block_statement())  # type: ignore[arg-type]
         return self.parse_expression_statement()
+
+    def parse_for_statement(self) -> While:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.")
+
+        if self.match(TokenType.SEMICOLON):
+            initializer = None
+        elif self.match(TokenType.VAR):
+            initializer = self.parse_var_declaration()
+        else:
+            initializer = self.parse_expression_statement()
+
+        condition = None
+        if not self.check(TokenType.SEMICOLON):
+            condition = self.parse_expression()
+        self.consume(TokenType.SEMICOLON, "Expect ';' after loop condition.")
+
+        increment = None
+        if not self.check(TokenType.RIGHT_PAREN):
+            increment = self.parse_expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses.")
+
+        body = self.parse_statement()
+        if increment:
+            body = Block([body, ExpressionStatement(increment)])
+
+        if not condition:
+            condition = Literal(True)
+        body = While(condition, body)
+
+        if initializer:
+            body = Block([initializer, body])
+
+        return body
+
+    def parse_if_statement(self) -> If:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'.")
+        condition = self.parse_expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after if condition.")
+
+        then_branch = self.parse_statement()
+        else_branch = None
+        if self.match(TokenType.ELSE):
+            else_branch = self.parse_statement()
+
+        return If(condition, then_branch, else_branch)
 
     def parse_print_statement(self) -> PrintStatement:
         value = self.parse_expression()
         self.consume(TokenType.SEMICOLON, "Expect ';' after a value.")
         return PrintStatement(value)
+
+    def parse_while_statement(self) -> While:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'.")
+        condition = self.parse_expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after while condition.")
+        body = self.parse_statement()
+        return While(condition, body)
 
     def parse_expression_statement(self) -> ExpressionStatement:
         expr = self.parse_expression()
@@ -65,7 +123,7 @@ class Parser:
         return self.parse_assignment()
 
     def parse_assignment(self) -> Expression:
-        expr = self.parse_equality()
+        expr = self.parse_or()
 
         if self.match(TokenType.EQUAL):
             equals = cast(Token, self.previous_token)
@@ -74,6 +132,26 @@ class Parser:
             if isinstance(expr, Variable):
                 return Assign(expr.name, value)
             self.error(equals, "Invalid assignment target.")
+
+        return expr
+
+    def parse_or(self) -> Expression:
+        expr = self.parse_and()
+
+        while self.match(TokenType.OR):
+            operator = self.previous_token
+            right = self.parse_and()
+            expr = Logical(expr, operator, right)
+
+        return expr
+
+    def parse_and(self) -> Expression:
+        expr = self.parse_equality()
+
+        while self.match(TokenType.AND):
+            operator = self.previous_token
+            right = self.parse_equality()
+            expr = Logical(expr, operator, right)
 
         return expr
 

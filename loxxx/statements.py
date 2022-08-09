@@ -15,6 +15,13 @@ class ExpressionStatement(Statement):
 
 
 @dataclass
+class If(Statement):
+    condition: Expression
+    then_branch: Statement
+    else_branch: Statement
+
+
+@dataclass
 class PrintStatement(Statement):
     expression: Expression
 
@@ -23,6 +30,12 @@ class PrintStatement(Statement):
 class VariableDeclaration(Statement):
     name: Token
     initializer: Expression | None
+
+
+@dataclass
+class While(Statement):
+    condition: Expression
+    body: Statement
 
 
 @dataclass

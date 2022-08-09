@@ -15,6 +15,13 @@ class Binary(Expression):
 
 
 @dataclass
+class Logical(Expression):
+    left: Expression
+    operator: Token
+    right: Expression
+
+
+@dataclass
 class Unary(Expression):
     operator: Token
     right: Expression
@@ -27,7 +34,7 @@ class Grouping(Expression):
 
 @dataclass
 class Literal(Expression):
-    value: float | str | None
+    value: float | str | bool | None
 
 
 @dataclass
