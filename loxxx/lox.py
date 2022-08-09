@@ -2,7 +2,7 @@ import sys
 
 from loxxx.ast_printer import ASTPrinter
 from loxxx.errors import report
-from loxxx.interpreter import Interpeter, LoxRuntimeError
+from loxxx.interpreter import Interpreter, LoxRuntimeError
 from loxxx.parser import ParseError, Parser
 from loxxx.scanner import Scanner, Token, TokenType
 from loxxx.statements import ExpressionStatement
@@ -12,7 +12,7 @@ class Lox:
     _had_error = False
     _had_runtime_error = False
 
-    _interpreter = Interpeter()
+    _interpreter = Interpreter()
 
     def run_file(self, path):
         with open(path) as source_file:
@@ -41,9 +41,9 @@ class Lox:
             return
 
         if repl_mode:
-            self._interpreter.intepret_repl(statements)
+            self._interpreter.interpret_repl(statements)
         else:
-            self._interpreter.intepret(statements)
+            self._interpreter.interpret(statements)
 
     @staticmethod
     def error(token: Token, message: str) -> None:

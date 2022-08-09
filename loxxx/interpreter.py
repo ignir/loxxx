@@ -32,11 +32,11 @@ class Environment:
         raise LoxRuntimeError(name, f"Undefined variable {name.lexeme!r}.")
 
 
-class Interpeter:
+class Interpreter:
     def __init__(self) -> None:
         self._environment = Environment()
 
-    def intepret(self, statements: Iterable[Statement]) -> None:
+    def interpret(self, statements: Iterable[Statement]) -> None:
         from loxxx.lox import Lox
 
         try:
@@ -45,7 +45,7 @@ class Interpeter:
         except LoxRuntimeError as error:
             Lox.runtime_error(error)
 
-    def intepret_repl(self, statements: Iterable[Statement]) -> Any:
+    def interpret_repl(self, statements: Iterable[Statement]) -> Any:
         from loxxx.lox import Lox
 
         if len(statements) == 1 and isinstance(statements[0], ExpressionStatement):
@@ -54,7 +54,7 @@ class Interpeter:
             except LoxRuntimeError as error:
                 Lox.runtime_error(error)
         else:
-            self.intepret(statements)
+            self.interpret(statements)
 
     @singledispatchmethod
     def execute(self, statement: Statement) -> None:
