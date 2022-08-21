@@ -15,6 +15,13 @@ class Binary(Expression):
 
 
 @dataclass
+class Call(Expression):
+    callee: Expression
+    paren: Token
+    arguments: list[Expression]
+
+
+@dataclass
 class Logical(Expression):
     left: Expression
     operator: Token

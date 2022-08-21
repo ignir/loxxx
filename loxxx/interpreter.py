@@ -1,40 +1,20 @@
 from functools import singledispatchmethod
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List
 
-from loxxx.expressions import Assign, Expression, Binary, Logical, Unary, Grouping, Literal, Variable
+from loxxx.environment import Environment
+from loxxx.errors import LoxRuntimeError
+from loxxx.expressions import Assign, Expression, Binary, Logical, Unary, Grouping, Literal, Variable, Call
+from loxxx.native import clock
 from loxxx.scanner import Token, TokenType
-from loxxx.statements import Block, ExpressionStatement, If, PrintStatement, Statement, VariableDeclaration, While
-
-
-class Environment:
-    def __init__(self, outer: Optional['Environment'] = None):
-        self._outer = outer
-        self._values: dict = {}
-
-    def define(self, name: str, value: Any) -> None:
-        self._values[name] = value
-
-    def assign(self, name: Token, value: Any) -> None:
-        if name.lexeme in self._values:
-            self._values[name.lexeme] = value
-            return
-        if self._outer:
-            return self._outer.assign(name, value)
-
-        raise LoxRuntimeError(name, f"Undefined variable {name.lexeme!r}.")
-
-    def get(self, name: Token) -> Any:
-        if name.lexeme in self._values:
-            return self._values[name.lexeme]
-        if self._outer:
-            return self._outer.get(name)
-
-        raise LoxRuntimeError(name, f"Undefined variable {name.lexeme!r}.")
+from loxxx.statements import Block, ExpressionStatement, If, PrintStatement, Return, Statement, VariableDeclaration, While
+from loxxx.statements import Function as FunctionStatement
 
 
 class Interpreter:
     def __init__(self) -> None:
-        self._environment = Environment()
+        self.environment = self.globals = Environment()
+
+        self.globals.define("clock", clock())
 
     def interpret(self, statements: Iterable[Statement]) -> None:
         from loxxx.lox import Lox
@@ -66,20 +46,27 @@ class Interpreter:
 
     @execute.register
     def _(self, statement: Block) -> None:
-        self._execute_block(statement.statements, Environment(self._environment))
+        self.execute_block(statement.statements, Environment(self.environment))
 
-    def _execute_block(self, statements: List[Statement], environment: Environment) -> None:
-        outer_environment = self._environment
+    def execute_block(self, statements: List[Statement], environment: Environment) -> None:
+        outer_environment = self.environment
         try:
-            self._environment = environment
+            self.environment = environment
             for statement in statements:
                 self.execute(statement)
         finally:
-            self._environment = outer_environment
+            self.environment = outer_environment
 
     @execute.register
     def _(self, statement: ExpressionStatement) -> None:
         self.evaluate(statement.expression)
+
+    @execute.register
+    def _(self, statement: FunctionStatement) -> None:
+        from loxxx.callable import Function
+
+        function = Function(statement, self.environment)
+        self.environment.define(statement.name.lexeme, function)
 
     @execute.register
     def _(self, statement: If) -> None:
@@ -94,14 +81,36 @@ class Interpreter:
         print(self._stringify(value))
 
     @execute.register
+    def _(self, statement: Return) -> None:
+        from loxxx.callable import FunctionReturn
+
+        value = None
+        if statement.expression is not None:
+            value = self.evaluate(statement.expression)
+        raise FunctionReturn(value)
+
+    @execute.register
     def _(self, statement: VariableDeclaration) -> None:
         value = statement.initializer and self.evaluate(statement.initializer)
-        self._environment.define(statement.name.lexeme, value)
+        self.environment.define(statement.name.lexeme, value)
 
     @execute.register
     def _(self, statement: While) -> None:
         while self._is_truthy(self.evaluate(statement.condition)):
             self.execute(statement.body)
+
+    @evaluate.register
+    def _(self, expression: Call) -> Any:
+        from loxxx.callable import Callable
+
+        callee = self.evaluate(expression.callee)
+        if not isinstance(callee, Callable):
+            raise LoxRuntimeError(expression.paren, "Can only call functions and classes.")
+        if len(expression.arguments) != callee.arity:
+            raise LoxRuntimeError(expression.paren, f"Expected {callee.arity} arguments but got {len(expression.arguments)}.")
+
+        arguments = [self.evaluate(argument) for argument in expression.arguments]
+        return callee.call(self, arguments)
 
     @evaluate.register
     def _(self, expression: Literal) -> Any:
@@ -139,12 +148,12 @@ class Interpreter:
 
     @evaluate.register
     def _(self, expression: Variable) -> Any:
-        return self._environment.get(expression.name)
+        return self.environment.get(expression.name)
 
     @evaluate.register
     def _(self, expression: Assign) -> Any:
         value = self.evaluate(expression.value)
-        self._environment.assign(expression.name, value)
+        self.environment.assign(expression.name, value)
         return value
 
     @evaluate.register
@@ -215,12 +224,3 @@ class Interpreter:
                 return s[:-2]
             return s
         return str(value)
-
-
-class LoxRuntimeError(Exception):
-    def __init__(self, token: Token, message: str):
-        self.token = token
-        self.message = message
-
-    def __str__(self):
-        return f"{self.token.lexeme}: {self.message}"

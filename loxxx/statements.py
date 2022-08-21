@@ -15,6 +15,13 @@ class ExpressionStatement(Statement):
 
 
 @dataclass
+class Function(Statement):
+    name: Token
+    params: List[Token]
+    body: List[Statement]
+
+
+@dataclass
 class If(Statement):
     condition: Expression
     then_branch: Statement
@@ -23,6 +30,12 @@ class If(Statement):
 
 @dataclass
 class PrintStatement(Statement):
+    expression: Expression
+
+
+@dataclass
+class Return(Statement):
+    keyword: Token
     expression: Expression
 
 

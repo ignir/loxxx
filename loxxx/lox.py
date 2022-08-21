@@ -1,11 +1,9 @@
 import sys
 
-from loxxx.ast_printer import ASTPrinter
 from loxxx.errors import report
 from loxxx.interpreter import Interpreter, LoxRuntimeError
 from loxxx.parser import ParseError, Parser
 from loxxx.scanner import Scanner, Token, TokenType
-from loxxx.statements import ExpressionStatement
 
 
 class Lox:
