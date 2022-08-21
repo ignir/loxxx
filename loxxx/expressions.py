@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 
 from loxxx.scanner import Token
 
@@ -53,3 +54,12 @@ class Variable(Expression):
 class Assign(Expression):
     name: Token
     value: Expression
+
+
+@dataclass
+class FunctionDeclaration(Expression):
+    from loxxx.statements import Statement
+
+    name: Token | None
+    params: List[Token]
+    body: List[Statement]

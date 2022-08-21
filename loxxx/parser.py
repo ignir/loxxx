@@ -1,9 +1,18 @@
-from enum import Enum, auto
+from enum import Enum
 from typing import List, Optional, cast
 
-from loxxx.expressions import Assign, Binary, Expression, Grouping, Literal, Logical, Unary, Variable, Call
+from loxxx.expressions import Assign, Binary, Expression, FunctionDeclaration, Grouping, Literal, Logical, Unary, Variable, Call
 from loxxx.scanner import Token, TokenType
-from loxxx.statements import Block, ExpressionStatement, Function, If, Return, Statement, PrintStatement, VariableDeclaration, While
+from loxxx.statements import (
+    Block,
+    ExpressionStatement,
+    If,
+    Return,
+    Statement,
+    PrintStatement,
+    VariableDeclaration,
+    While
+)
 
 
 class ParseError(Exception):
@@ -28,8 +37,6 @@ class Parser:
 
     def parse_declaration(self) -> Optional[Statement]:
         try:
-            if self.match(TokenType.FUN):
-                return self.parse_function_declaration(FunctionType.FUNCTION)
             if self.match(TokenType.VAR):
                 return self.parse_var_declaration()
             return self.parse_statement()
@@ -37,8 +44,10 @@ class Parser:
             self._synchronize()
             return None
 
-    def parse_function_declaration(self, type: FunctionType) -> Function:
-        name = self.consume(TokenType.IDENTIFIER, f"Expect {type} name.")
+    def parse_function_declaration(self, type: FunctionType) -> FunctionDeclaration:
+        name = None
+        if self.check(TokenType.IDENTIFIER):
+            name = self.consume(TokenType.IDENTIFIER, f"Expect {type} name.")
 
         self.consume(TokenType.LEFT_PAREN, f"Expect '(' after {type} name.")
         parameters = []
@@ -52,7 +61,7 @@ class Parser:
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.")
 
         self.consume(TokenType.LEFT_BRACE, f"Expect '{{' before {type} body.")
-        return Function(name, parameters, self.parse_block_statement())
+        return FunctionDeclaration(name, parameters, self.parse_block_statement())
 
     def parse_var_declaration(self) -> VariableDeclaration:
         name = self.consume(TokenType.IDENTIFIER, "Expect a variable name.")
@@ -142,7 +151,8 @@ class Parser:
 
     def parse_expression_statement(self) -> ExpressionStatement:
         expr = self.parse_expression()
-        self.consume(TokenType.SEMICOLON, "Expect ';' after an expression.")
+        if not isinstance(expr, FunctionDeclaration) or self.check(TokenType.SEMICOLON):
+            self.consume(TokenType.SEMICOLON, "Expect ';' after an expression.")
         return ExpressionStatement(expr)
 
     def parse_block_statement(self) -> List[Statement | None]:
@@ -264,6 +274,8 @@ class Parser:
             return Literal(cast(Token, self.previous_token).literal)
         if self.match(TokenType.IDENTIFIER):
             return Variable(cast(Token, self.previous_token))
+        if self.match(TokenType.FUN):
+            return self.parse_function_declaration(FunctionType.FUNCTION)
         if self.match(TokenType.LEFT_PAREN):
             expr = self.parse_expression()
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")

@@ -1,13 +1,13 @@
 from functools import singledispatchmethod
 from typing import Any, Iterable, List
 
+from loxxx.callable import Callable, Function, FunctionReturn
 from loxxx.environment import Environment
 from loxxx.errors import LoxRuntimeError
-from loxxx.expressions import Assign, Expression, Binary, Logical, Unary, Grouping, Literal, Variable, Call
+from loxxx.expressions import Assign, Expression, Binary, Logical, Unary, Grouping, Literal, Variable, Call, FunctionDeclaration
 from loxxx.native import clock
 from loxxx.scanner import Token, TokenType
 from loxxx.statements import Block, ExpressionStatement, If, PrintStatement, Return, Statement, VariableDeclaration, While
-from loxxx.statements import Function as FunctionStatement
 
 
 class Interpreter:
@@ -62,13 +62,6 @@ class Interpreter:
         self.evaluate(statement.expression)
 
     @execute.register
-    def _(self, statement: FunctionStatement) -> None:
-        from loxxx.callable import Function
-
-        function = Function(statement, self.environment)
-        self.environment.define(statement.name.lexeme, function)
-
-    @execute.register
     def _(self, statement: If) -> None:
         if self._is_truthy(self.evaluate(statement.condition)):
             self.execute(statement.then_branch)
@@ -82,8 +75,6 @@ class Interpreter:
 
     @execute.register
     def _(self, statement: Return) -> None:
-        from loxxx.callable import FunctionReturn
-
         value = None
         if statement.expression is not None:
             value = self.evaluate(statement.expression)
@@ -101,8 +92,6 @@ class Interpreter:
 
     @evaluate.register
     def _(self, expression: Call) -> Any:
-        from loxxx.callable import Callable
-
         callee = self.evaluate(expression.callee)
         if not isinstance(callee, Callable):
             raise LoxRuntimeError(expression.paren, "Can only call functions and classes.")
@@ -195,6 +184,13 @@ class Interpreter:
                 return left <= right
 
         raise Exception(f"No handler for a binary operator of type {expression.operator.type}")
+
+    @evaluate.register
+    def _(self, expression: FunctionDeclaration) -> Any:
+        function = Function(expression, self.environment)
+        if expression.name:
+            self.environment.define(expression.name.lexeme, function)
+        return function
 
     def _is_truthy(self, o: object) -> bool:
         if o is None:
