@@ -5,7 +5,7 @@ from loxxx.environment import Environment
 
 if TYPE_CHECKING:
     from loxxx.interpreter import Interpreter
-    from loxxx.parser import Function as FunctionStatement
+    from loxxx.expressions import FunctionDeclaration
 
 
 class Callable(ABC):
@@ -20,7 +20,7 @@ class Callable(ABC):
 
 
 class Function(Callable):
-    def __init__(self, declaration: 'FunctionStatement', closure: Environment) -> None:
+    def __init__(self, declaration: 'FunctionDeclaration', closure: Environment) -> None:
         self._declaration = declaration
         self._closure = closure
 

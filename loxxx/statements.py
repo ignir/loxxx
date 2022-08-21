@@ -15,13 +15,6 @@ class ExpressionStatement(Statement):
 
 
 @dataclass
-class Function(Statement):
-    name: Token
-    params: List[Token]
-    body: List[Statement]
-
-
-@dataclass
 class If(Statement):
     condition: Expression
     then_branch: Statement
