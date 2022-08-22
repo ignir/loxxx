@@ -40,7 +40,9 @@ class Function(Callable):
         return len(self._declaration.params)
 
     def __str__(self) -> str:
-        return f"<fn {self._declaration.name.lexeme} >"
+        if self._declaration.name:
+            return f"<fn {self._declaration.name.lexeme} >"
+        return "<anonymous fn>"
 
 
 class FunctionReturn(Exception):
