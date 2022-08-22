@@ -28,6 +28,7 @@ class Parser:
     def __init__(self, tokens: List[Token]) -> None:
         self._tokens = tokens
         self._current = 0
+        self.errors = []
 
     def parse(self) -> List[Statement | None]:
         statements = []
@@ -307,10 +308,7 @@ class Parser:
         return self.peek.type == type
 
     def error(self, token: Token, message: str) -> ParseError:
-        # TODO: Can this work without circular dependencies between classes?
-        from loxxx.lox import Lox
-
-        Lox.error(token, message)
+        self.errors.append((token, message))
         return ParseError()
 
     def _synchronize(self) -> None:

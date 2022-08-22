@@ -30,18 +30,21 @@ class Lox:
 
     def run(self, source, *, repl_mode=False):
         tokens = Scanner(source).scan()
-        try:
-            statements = Parser(tokens).parse()
-        except ParseError as e:
-            pass
+        parser = Parser(tokens)
+        statements = parser.parse()
+        for error in parser.errors:
+            Lox.error(*error)
 
         if Lox._had_error:
             return
 
-        if repl_mode:
-            self._interpreter.interpret_repl(statements)
-        else:
-            self._interpreter.interpret(statements)
+        try:
+            if repl_mode:
+                self._interpreter.interpret_repl(statements)
+            else:
+                self._interpreter.interpret(statements)
+        except LoxRuntimeError as error:
+            Lox.runtime_error(error)
 
     @staticmethod
     def error(token: Token, message: str) -> None:

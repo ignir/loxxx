@@ -17,22 +17,12 @@ class Interpreter:
         self.globals.define("clock", clock())
 
     def interpret(self, statements: Iterable[Statement]) -> None:
-        from loxxx.lox import Lox
-
-        try:
-            for statement in statements:
-                self.execute(statement)
-        except LoxRuntimeError as error:
-            Lox.runtime_error(error)
+        for statement in statements:
+            self.execute(statement)
 
     def interpret_repl(self, statements: Iterable[Statement]) -> Any:
-        from loxxx.lox import Lox
-
         if len(statements) == 1 and isinstance(statements[0], ExpressionStatement):
-            try:
-                print(self.evaluate(statements[0].expression))
-            except LoxRuntimeError as error:
-                Lox.runtime_error(error)
+            print(self.evaluate(statements[0].expression))
         else:
             self.interpret(statements)
 
@@ -212,7 +202,6 @@ class Interpreter:
     def _stringify(self, value: object) -> str:
         if value is None:
             return "nil"
-
         if isinstance(value, bool):
             return "true" if value else "false"
         if isinstance(value, float):

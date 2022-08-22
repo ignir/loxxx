@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from loxxx.scanner import Token
 
@@ -56,10 +56,10 @@ class Assign(Expression):
     value: Expression
 
 
+from loxxx.statements import Statement
+
 @dataclass
 class FunctionDeclaration(Expression):
-    from loxxx.statements import Statement
-
     name: Token | None
     params: List[Token]
     body: List[Statement]
