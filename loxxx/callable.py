@@ -41,7 +41,7 @@ class Function(Callable):
 
     def __str__(self) -> str:
         if self._declaration.name:
-            return f"<fn {self._declaration.name.lexeme} >"
+            return f"<fn {self._declaration.name.lexeme}>"
         return "<anonymous fn>"
 
 
