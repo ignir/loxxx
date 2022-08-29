@@ -13,6 +13,7 @@ from loxxx.statements import Block, ExpressionStatement, If, PrintStatement, Ret
 class Interpreter:
     def __init__(self) -> None:
         self.environment = self.globals = Environment()
+        self.locals: dict[Expression, int] = {}
 
         self.globals.define("clock", clock())
 
@@ -33,6 +34,9 @@ class Interpreter:
     @singledispatchmethod
     def evaluate(self, expression: Expression) -> Any:
         raise NotImplementedError
+
+    def resolve(self, expression: Expression, depth: int) -> None:
+        self.locals[expression] = depth
 
     @execute.register
     def _(self, statement: Block) -> None:
@@ -127,12 +131,18 @@ class Interpreter:
 
     @evaluate.register
     def _(self, expression: Variable) -> Any:
-        return self.environment.get(expression.name)
+        return self._look_up_variable(expression.name, expression)
 
     @evaluate.register
     def _(self, expression: Assign) -> Any:
         value = self.evaluate(expression.value)
-        self.environment.assign(expression.name, value)
+
+        distance = self.locals.get(expression)
+        if distance is not None:
+            self.environment.assign_at(distance, expression.name, value)
+        else:
+            self.globals.assign(expression.name, value)
+
         return value
 
     @evaluate.register
@@ -181,6 +191,12 @@ class Interpreter:
         if expression.name:
             self.environment.define(expression.name.lexeme, function)
         return function
+
+    def _look_up_variable(self, name: Token, expression: Expression) -> Any:
+        distance = self.locals.get(expression)
+        if distance is not None:
+            return self.environment.get_at(distance, name.lexeme)
+        return self.globals.get(name)
 
     def _is_truthy(self, o: object) -> bool:
         if o is None:

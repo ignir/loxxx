@@ -3,6 +3,7 @@ import sys
 from loxxx.errors import report
 from loxxx.interpreter import Interpreter, LoxRuntimeError
 from loxxx.parser import ParseError, Parser
+from loxxx.resolver import Resolver
 from loxxx.scanner import Scanner, Token, TokenType
 
 
@@ -30,11 +31,18 @@ class Lox:
 
     def run(self, source, *, repl_mode=False):
         tokens = Scanner(source).scan()
+
         parser = Parser(tokens)
         statements = parser.parse()
         for error in parser.errors:
             Lox.error(*error)
+        if Lox._had_error:
+            return
 
+        resolver = Resolver(self._interpreter)
+        resolver.resolve(statements)
+        for error in resolver.errors:
+            Lox.error(*error)
         if Lox._had_error:
             return
 

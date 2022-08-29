@@ -8,49 +8,49 @@ class Expression:
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Binary(Expression):
     left: Expression
     operator: Token
     right: Expression
 
 
-@dataclass
+@dataclass(frozen=True)
 class Call(Expression):
     callee: Expression
     paren: Token
     arguments: list[Expression]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Logical(Expression):
     left: Expression
     operator: Token
     right: Expression
 
 
-@dataclass
+@dataclass(frozen=True)
 class Unary(Expression):
     operator: Token
     right: Expression
 
 
-@dataclass
+@dataclass(frozen=True)
 class Grouping(Expression):
     expression: Expression
 
 
-@dataclass
+@dataclass(frozen=True)
 class Literal(Expression):
     value: float | str | bool | None
 
 
-@dataclass
+@dataclass(frozen=True)
 class Variable(Expression):
     name: Token
 
 
-@dataclass
+@dataclass(frozen=True)
 class Assign(Expression):
     name: Token
     value: Expression
@@ -58,7 +58,7 @@ class Assign(Expression):
 
 from loxxx.statements import Statement
 
-@dataclass
+@dataclass(frozen=True)
 class FunctionDeclaration(Expression):
     name: Token | None
     params: List[Token]
