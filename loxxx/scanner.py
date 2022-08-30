@@ -83,6 +83,9 @@ class Token:
     literal: Any
     line_num: int
 
+    def __hash__(self) -> int:
+        return id(self)
+
 
 class Scanner:
     def __init__(self, source):
