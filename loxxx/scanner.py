@@ -19,7 +19,7 @@ class TokenType(Enum):
     SEMICOLON = auto()
     SLASH = auto()
     STAR = auto()
-    
+
     # One or two character tokens.
     BANG = auto()
     BANG_EQUAL = auto()
@@ -29,12 +29,12 @@ class TokenType(Enum):
     GREATER_EQUAL = auto()
     LESS = auto()
     LESS_EQUAL = auto()
-    
+
     # Literals.
     IDENTIFIER = auto()
     STRING = auto()
     NUMBER = auto()
-    
+
     # Keywords.
     AND = auto()
     CLASS = auto()
@@ -52,7 +52,7 @@ class TokenType(Enum):
     TRUE = auto()
     VAR = auto()
     WHILE = auto()
-    
+
     EOF = auto()
 
 
@@ -72,7 +72,7 @@ KEYWORD_TOKEN_TYPES = {
     "this": TokenType.THIS,
     "true": TokenType.TRUE,
     "var": TokenType.VAR,
-    "while": TokenType.WHILE,    
+    "while": TokenType.WHILE,
 }
 
 
@@ -190,7 +190,7 @@ class Scanner:
             if next_char == "\n":
                 self._line_num += 1
             self._advance()
-        
+
         if self._is_at_end():
             error(self._line_num, "Unterminated string")
             return
@@ -221,7 +221,7 @@ class Scanner:
         text = self._source[self._start:self._current]
         token_type = KEYWORD_TOKEN_TYPES.get(text, TokenType.IDENTIFIER)
         self._add_token(token_type)
-    
+
     def _add_token(self, token_type, literal=None) -> None:
         self._tokens.append(
             Token(
