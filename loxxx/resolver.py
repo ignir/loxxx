@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum, auto
 from functools import singledispatchmethod
 
@@ -17,7 +18,12 @@ class Resolver:
         self.errors = []
         self._current_function = FunctionType.NONE
         self._interpreter = interpreter
-        self._scopes: list[dict[str, bool]] = []
+        self._scopes: list[dict[str, VariableInScope]] = []
+
+    def run(self, statements: list[Statement]) -> None:
+        self._begin_scope()
+        self.resolve(statements)
+        self._end_scope()
 
     def resolve(self, statements: list[Statement]) -> None:
         for statement in statements:
@@ -103,8 +109,11 @@ class Resolver:
 
     @_resolve.register
     def _(self, expression: Variable) -> None:
-        if self._scopes and self._scopes[-1].get(expression.name.lexeme) is False:
-            self.errors.append((expression.name, "Can't read local variable in its own initializer."))
+        lexeme = expression.name.lexeme
+        if self._scopes:
+            current_scope = self._scopes[-1]
+            if lexeme in current_scope and not current_scope[lexeme].is_defined:
+                self.errors.append((expression.name, "Can't read local variable in its own initializer."))
         self._resolve_local(expression, expression.name)
 
     @_resolve.register
@@ -131,12 +140,17 @@ class Resolver:
         for distance, scope in enumerate(reversed(self._scopes)):
             if name.lexeme in scope:
                 self._interpreter.resolve(expression, distance)
+                scope[name.lexeme].has_references = True
+                # TODO: Shouldn't we break the loop here?
 
     def _begin_scope(self) -> None:
         self._scopes.append({})
 
     def _end_scope(self) -> None:
-        self._scopes.pop()
+        scope = self._scopes.pop()
+        for lexeme, var in scope.items():
+            if not var.has_references:
+                self.errors.append((var.token, "A variable is never used"))
 
     def _declare(self, name: Token) -> None:
         if not self._scopes:
@@ -144,9 +158,16 @@ class Resolver:
         scope = self._scopes[-1]
         if name.lexeme in scope:
             self.errors.append((name, "A variable with this name is already defined in this scope."))
-        scope[name.lexeme] = False
+        scope[name.lexeme] = VariableInScope(name)
 
     def _define(self, name: Token) -> None:
         if not self._scopes:
             return
-        self._scopes[-1][name.lexeme] = True
+        self._scopes[-1][name.lexeme].is_defined = True
+
+
+@dataclass
+class VariableInScope:
+    token: Token
+    is_defined: bool = False
+    has_references: bool = False
