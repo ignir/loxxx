@@ -40,7 +40,7 @@ class Lox:
             return
 
         resolver = Resolver(self._interpreter)
-        resolver.resolve(statements)
+        resolver.run(statements)
         for error in resolver.errors:
             Lox.error(*error)
         if Lox._had_error:
