@@ -11,6 +11,7 @@ from loxxx.statements.base import Statement
 class Class(Statement):
     name: Token
     methods: List[FunctionDeclaration]
+    static_methods: List[FunctionDeclaration]
 
 
 @dataclass(frozen=True)

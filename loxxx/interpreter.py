@@ -72,7 +72,11 @@ class Interpreter:
             method.name.lexeme: Function(method, self.environment, method.name.lexeme == "init")
             for method in statement.methods
         }
-        self.environment.assign(statement.name, LoxClass(statement.name.lexeme, methods))
+        static_methods = {
+            method.name.lexeme: Function(method, self.environment, False)
+            for method in statement.static_methods
+        }
+        self.environment.assign(statement.name, LoxClass(statement.name.lexeme, methods, static_methods))
 
     @execute.register
     def _(self, statement: ExpressionStatement) -> None:
@@ -121,7 +125,7 @@ class Interpreter:
     @evaluate.register
     def _(self, expression: Get) -> Any:
         object = self.evaluate(expression.object)
-        if not isinstance(object, Instance):
+        if not isinstance(object, (Instance, LoxClass)):
             raise LoxRuntimeError(expression.name, "Only instances have properties.")
         return object.get(expression.name)
 

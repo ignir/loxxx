@@ -65,9 +65,10 @@ class FunctionReturn(Exception):
 
 
 class Class(Callable):
-    def __init__(self, name: str, methods: Dict[str, Function]) -> None:
+    def __init__(self, name: str, methods: Dict[str, Function], static_methods: Dict[str, Function]) -> None:
         self.name = name
         self.methods = methods
+        self.static_methods = static_methods
 
     def call(self, interpreter: 'Interpreter', arguments: list[Any]) -> Any:
         instance = Instance(self)
@@ -77,6 +78,13 @@ class Class(Callable):
 
     def find_method(self, name: str) -> Optional[Function]:
         return self.methods.get(name)
+
+    def get(self, name: Token) -> Any:
+        method = self.static_methods.get(name.lexeme)
+        if method:
+            return method.bind(self)
+
+        raise LoxRuntimeError(name, f"Undefined static method '{name.lexeme}'.")
 
     @property
     def arity(self) -> int:

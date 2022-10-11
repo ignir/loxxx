@@ -66,6 +66,9 @@ class Resolver:
         for method in statement.methods:
             declaration = FunctionType.INITALIZER if method.name.lexeme == "init" else FunctionType.METHOD
             self._resolve_function(method, declaration)
+        for method in statement.static_methods:
+            declaration = FunctionType.METHOD
+            self._resolve_function(method, declaration)
 
         self._end_scope()
 

@@ -67,12 +67,17 @@ class Parser:
         self.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
 
         methods = []
+        static_methods = []
         while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end:
-            methods.append(self.parse_function_declaration(FunctionType.METHOD))
+            if self.match(TokenType.CLASS):
+                # import pdb; pdb.set_trace()
+                static_methods.append(self.parse_function_declaration(FunctionType.METHOD))
+            else:
+                methods.append(self.parse_function_declaration(FunctionType.METHOD))
 
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
 
-        return Class(name, methods)
+        return Class(name, methods, static_methods)
 
     def parse_function_declaration(self, type: FunctionType) -> FunctionDeclaration:
         name = None
