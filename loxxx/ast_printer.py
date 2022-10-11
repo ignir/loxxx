@@ -1,6 +1,6 @@
 from functools import singledispatchmethod
 
-from loxxx.expressions import Expression, Binary, Unary, Grouping, Literal
+from loxxx.expressions.expressions import Expression, Binary, Unary, Grouping, Literal
 
 
 class ASTPrinter:
@@ -14,7 +14,7 @@ class ASTPrinter:
 
     @to_str.register
     def _(self, expression: Grouping) -> str:
-        return self.parenthesize("group", expression.expression)        
+        return self.parenthesize("group", expression.expression)
 
     @to_str.register
     def _(self, expression: Literal) -> str:
@@ -51,4 +51,4 @@ class RPNPrinter:
 
     @to_str.register
     def _(self, expression: Unary) -> str:
-        return " ".join([self.to_str(expression.right), expression.operator.lexeme]) 
+        return " ".join([self.to_str(expression.right), expression.operator.lexeme])

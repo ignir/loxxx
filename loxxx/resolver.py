@@ -2,20 +2,28 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from functools import singledispatchmethod
 
-from loxxx.expressions import Assign, Binary, Call, Expression, FunctionDeclaration, Grouping, Literal, Logical, Unary, Variable
+from loxxx.expressions.expressions import Assign, Binary, Call, Expression, FunctionDeclaration, Get, Grouping, Literal, Logical, Set, This, Unary, Variable
 from loxxx.interpreter import Interpreter
-from loxxx.scanner import Token
-from loxxx.statements import Block, ExpressionStatement, If, PrintStatement, Return, Statement, VariableDeclaration, While
+from loxxx.scanner import Token, TokenType
+from loxxx.statements.statements import Block, Class, ExpressionStatement, If, PrintStatement, Return, Statement, VariableDeclaration, While
 
 
 class FunctionType(Enum):
     NONE = auto()
     FUNCTION = auto()
+    INITALIZER = auto()
+    METHOD = auto()
+
+
+class ClassType(Enum):
+    NONE = auto()
+    CLASS = auto()
 
 
 class Resolver:
     def __init__(self, interpreter: Interpreter) -> None:
         self.errors = []
+        self._current_class = ClassType.NONE
         self._current_function = FunctionType.NONE
         self._interpreter = interpreter
         self._scopes: list[dict[str, VariableInScope]] = []
@@ -40,6 +48,30 @@ class Resolver:
         self._end_scope()
 
     @_resolve.register
+    def _(self, statement: Class) -> None:
+        enclosing_class = self._current_class
+        self._current_class = ClassType.CLASS
+
+        self._declare(statement.name)
+        self._define(statement.name)
+
+        self._begin_scope()
+
+        # TODO: Look for a way to implement this without a fake token
+        self._scopes[-1]["this"] = VariableInScope(
+            Token(TokenType.THIS, "this", None, -1),
+            is_defined=True,
+            has_references=True,
+        )
+        for method in statement.methods:
+            declaration = FunctionType.INITALIZER if method.name.lexeme == "init" else FunctionType.METHOD
+            self._resolve_function(method, declaration)
+
+        self._end_scope()
+
+        self._current_class = enclosing_class
+
+    @_resolve.register
     def _(self, statement: ExpressionStatement) -> None:
         self._resolve(statement.expression)
 
@@ -60,6 +92,9 @@ class Resolver:
             self.errors.append((statement.keyword, "Can't return from top-level code."))
 
         if statement.expression:
+            if self._current_function == FunctionType.INITALIZER:
+                self.errors.append((statement.keyword, "Can't return a value from an initializer."))
+
             self._resolve(statement.expression)
 
     @_resolve.register
@@ -91,6 +126,10 @@ class Resolver:
             self._resolve(argument)
 
     @_resolve.register
+    def _(self, expression: Get) -> None:
+        self._resolve(expression.object)
+
+    @_resolve.register
     def _(self, expression: Grouping) -> None:
         self._resolve(expression.expression)
 
@@ -102,6 +141,19 @@ class Resolver:
     def _(self, expression: Logical) -> None:
         self._resolve(expression.left)
         self._resolve(expression.right)
+
+    @_resolve.register
+    def _(self, expression: Set) -> None:
+        self._resolve(expression.value)
+        self._resolve(expression.object)
+
+    @_resolve.register
+    def _(self, expression: This) -> None:
+        if self._current_class == ClassType.NONE:
+            self.errors.append((expression.keyword, "Can't use 'this' outside of a class."))
+            return
+
+        self._resolve_local(expression, expression.keyword)
 
     @_resolve.register
     def _(self, expression: Unary) -> None:

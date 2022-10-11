@@ -1,5 +1,5 @@
 from loxxx.ast_printer import ASTPrinter, RPNPrinter
-from loxxx.expressions import Binary, Unary, Literal, Grouping
+from loxxx.expressions.expressions import Binary, Unary, Literal, Grouping
 from loxxx.scanner import Token, TokenType
 
 

@@ -1,12 +1,16 @@
 from dataclasses import dataclass
 from typing import List
 
-from loxxx.expressions import Expression
+from loxxx.expressions.expressions import FunctionDeclaration
+from loxxx.expressions.base import Expression
 from loxxx.scanner import Token
+from loxxx.statements.base import Statement
 
 
-class Statement:
-    pass
+@dataclass(frozen=True)
+class Class(Statement):
+    name: Token
+    methods: List[FunctionDeclaration]
 
 
 @dataclass(frozen=True)

@@ -1,5 +1,5 @@
 from loxxx.scanner import Token, TokenType
-from loxxx.expressions import Binary, Literal
+from loxxx.expressions.expressions import Binary, Literal
 from loxxx.interpreter import Interpreter, LoxRuntimeError
 
 import pytest

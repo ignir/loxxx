@@ -1,11 +1,9 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import List
 
 from loxxx.scanner import Token
-
-
-class Expression:
-    pass
+from loxxx.statements.base import Statement
+from .base import Expression
 
 
 @dataclass(frozen=True)
@@ -23,10 +21,28 @@ class Call(Expression):
 
 
 @dataclass(frozen=True)
+class Get(Expression):
+    object: Expression
+    name: Token
+
+
+@dataclass(frozen=True)
 class Logical(Expression):
     left: Expression
     operator: Token
     right: Expression
+
+
+@dataclass(frozen=True)
+class Set(Expression):
+    object: Expression
+    name: Token
+    value: Expression
+
+
+@dataclass(frozen=True)
+class This(Expression):
+    keyword: Token
 
 
 @dataclass(frozen=True)
@@ -55,8 +71,6 @@ class Assign(Expression):
     name: Token
     value: Expression
 
-
-from loxxx.statements import Statement
 
 @dataclass(frozen=True)
 class FunctionDeclaration(Expression):

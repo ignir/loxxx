@@ -1,13 +1,27 @@
 from functools import singledispatchmethod
 from typing import Any, Iterable, List
 
-from loxxx.callable import Callable, Function, FunctionReturn
+from loxxx.callable import Callable, Function, FunctionReturn, Class as LoxClass, Instance
 from loxxx.environment import Environment
 from loxxx.errors import LoxRuntimeError
-from loxxx.expressions import Assign, Expression, Binary, Logical, Unary, Grouping, Literal, Variable, Call, FunctionDeclaration
+from loxxx.expressions.expressions import (
+    Assign,
+    Expression,
+    Binary,
+    Call,
+    FunctionDeclaration,
+    Get,
+    Grouping,
+    Literal,
+    Logical,
+    Set,
+    This,
+    Unary,
+    Variable,
+)
 from loxxx.native import clock
 from loxxx.scanner import Token, TokenType
-from loxxx.statements import Block, ExpressionStatement, If, PrintStatement, Return, Statement, VariableDeclaration, While
+from loxxx.statements.statements import Block, Class, ExpressionStatement, If, PrintStatement, Return, Statement, VariableDeclaration, While
 
 
 class Interpreter:
@@ -50,6 +64,15 @@ class Interpreter:
                 self.execute(statement)
         finally:
             self.environment = outer_environment
+
+    @execute.register
+    def _(self, statement: Class) -> None:
+        self.environment.define(statement.name.lexeme, None)
+        methods = {
+            method.name.lexeme: Function(method, self.environment, method.name.lexeme == "init")
+            for method in statement.methods
+        }
+        self.environment.assign(statement.name, LoxClass(statement.name.lexeme, methods))
 
     @execute.register
     def _(self, statement: ExpressionStatement) -> None:
@@ -96,6 +119,13 @@ class Interpreter:
         return callee.call(self, arguments)
 
     @evaluate.register
+    def _(self, expression: Get) -> Any:
+        object = self.evaluate(expression.object)
+        if not isinstance(object, Instance):
+            raise LoxRuntimeError(expression.name, "Only instances have properties.")
+        return object.get(expression.name)
+
+    @evaluate.register
     def _(self, expression: Literal) -> Any:
         return expression.value
 
@@ -111,6 +141,19 @@ class Interpreter:
                 return left
 
         return self.evaluate(expression.right)
+
+    @evaluate.register
+    def _(self, expression: Set) -> Any:
+        object = self.evaluate(expression.object)
+        if not isinstance(object, Instance):
+            raise LoxRuntimeError(expression.name, "Only instances have properties.")
+        value = self.evaluate(expression.value)
+        object.set(expression.name, value)
+        return value
+
+    @evaluate.register
+    def _(self, expression: This) -> Any:
+        return self._look_up_variable(expression.keyword, expression)
 
     @evaluate.register
     def _(self, expression: Grouping) -> Any:
@@ -187,7 +230,7 @@ class Interpreter:
 
     @evaluate.register
     def _(self, expression: FunctionDeclaration) -> Any:
-        function = Function(expression, self.environment)
+        function = Function(expression, self.environment, False)
         if expression.name:
             self.environment.define(expression.name.lexeme, function)
         return function

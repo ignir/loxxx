@@ -1,10 +1,25 @@
 from enum import Enum
 from typing import List, Optional, cast
 
-from loxxx.expressions import Assign, Binary, Expression, FunctionDeclaration, Grouping, Literal, Logical, Unary, Variable, Call
+from loxxx.expressions.expressions import (
+    Assign,
+    Binary,
+    Call,
+    Expression,
+    FunctionDeclaration,
+    Get,
+    Grouping,
+    Literal,
+    Logical,
+    Set,
+    This,
+    Unary,
+    Variable,
+)
 from loxxx.scanner import Token, TokenType
-from loxxx.statements import (
+from loxxx.statements.statements import (
     Block,
+    Class,
     ExpressionStatement,
     If,
     Return,
@@ -38,12 +53,26 @@ class Parser:
 
     def parse_declaration(self) -> Optional[Statement]:
         try:
+            if self.match(TokenType.CLASS):
+                return self.parse_class_declaration()
             if self.match(TokenType.VAR):
                 return self.parse_var_declaration()
             return self.parse_statement()
         except ParseError:
             self._synchronize()
             return None
+
+    def parse_class_declaration(self) -> Class:
+        name = self.consume(TokenType.IDENTIFIER, "Expect class name.")
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
+
+        methods = []
+        while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end:
+            methods.append(self.parse_function_declaration(FunctionType.METHOD))
+
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
+
+        return Class(name, methods)
 
     def parse_function_declaration(self, type: FunctionType) -> FunctionDeclaration:
         name = None
@@ -175,6 +204,8 @@ class Parser:
 
             if isinstance(expr, Variable):
                 return Assign(expr.name, value)
+            if isinstance(expr, Get):
+                return Set(expr.object, expr.name, value)
             self.error(equals, "Invalid assignment target.")
 
         return expr
@@ -250,17 +281,25 @@ class Parser:
     def parse_call(self) -> Expression:
         expr = self.parse_primary()
 
-        while self.match(TokenType.LEFT_PAREN):
-            arguments = []
-            if not self.check(TokenType.RIGHT_PAREN):
-                while True:
-                    if len(arguments) >= 255:
-                        self.error(self.peek, "Can't have more than 255 arguments.")
-                    arguments.append(self.parse_expression())
-                    if not self.match(TokenType.COMMA):
-                        break
-            paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.")
-            expr = Call(expr, paren, arguments)
+        while True:
+            if self.match(TokenType.LEFT_PAREN):
+                arguments = []
+                if not self.check(TokenType.RIGHT_PAREN):
+                    while True:
+                        if len(arguments) >= 255:
+                            self.error(self.peek, "Can't have more than 255 arguments.")
+                        arguments.append(self.parse_expression())
+                        if not self.match(TokenType.COMMA):
+                            break
+                paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.")
+                expr = Call(expr, paren, arguments)
+
+            elif self.match(TokenType.DOT):
+                name = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'.")
+                expr = Get(expr, name)
+
+            else:
+                break
 
         return expr
 
@@ -275,6 +314,8 @@ class Parser:
             return Literal(cast(Token, self.previous_token).literal)
         if self.match(TokenType.IDENTIFIER):
             return Variable(cast(Token, self.previous_token))
+        if self.match(TokenType.THIS):
+            return This(self.previous_token)
         if self.match(TokenType.FUN):
             return self.parse_function_declaration(FunctionType.FUNCTION)
         if self.match(TokenType.LEFT_PAREN):
